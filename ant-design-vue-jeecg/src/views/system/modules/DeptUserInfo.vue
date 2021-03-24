@@ -10,11 +10,6 @@
               <a-input placeholder="请输入账号" v-model="queryParam.username"></a-input>
             </a-form-item>
           </a-col>
-          <!--<a-col :md="8" :sm="8">-->
-          <!--<a-form-item label="用户名称" :labelCol="{span: 5}" :wrapperCol="{span: 18, offset: 1}">-->
-          <!--<a-input placeholder="请输入名称查询" v-model="queryParam.realname"></a-input>-->
-          <!--</a-form-item>-->
-          <!--</a-col>-->
           <span style="float: left;overflow: hidden;" class="table-page-search-submitButtons">
             <a-col :md="6" :sm="24">
              <a-button type="primary" @click="searchQuery" icon="search" style="margin-left: 18px">查询</a-button>
@@ -26,9 +21,9 @@
     </div>
     <!-- 操作按钮区域 -->
     <div class="table-operator" :md="24" :sm="24" style="margin-top: -15px">
-      <a-button @click="handleAdd" type="primary" icon="plus" style="margin-top: 16px">用户录入</a-button>
       <!--<a-button @click="handleEdit" type="primary" icon="edit" style="margin-top: 16px">用户编辑</a-button>-->
       <a-button @click="handleAddUserDepart" type="primary" icon="plus">添加已有用户</a-button>
+      <a-button @click="handleAdd" type="primary" icon="plus" style="margin-top: 16px">新建用户</a-button>
 
       <a-dropdown v-if="selectedRowKeys.length > 0">
         <a-menu slot="overlay">
@@ -75,17 +70,18 @@
               更多 <a-icon type="down"/>
             </a>
             <a-menu slot="overlay">
+                <a-menu-item>
+                <a href="javascript:;" @click="handleDeptRole(record)">部门角色</a>
+              </a-menu-item>
+
               <a-menu-item>
-                <a href="javascript:;" @click="handleDetail(record)">详情</a>
+                <a href="javascript:;" @click="handleDetail(record)">用户详情</a>
               </a-menu-item>
 
               <a-menu-item>
                 <a-popconfirm title="确定取消与选中部门关联吗?" @confirm="() => handleDelete(record.id)">
                   <a>取消关联</a>
                 </a-popconfirm>
-              </a-menu-item>
-              <a-menu-item>
-                <a href="javascript:;" @click="handleDeptRole(record)">分配部门角色</a>
               </a-menu-item>
             </a-menu>
           </a-dropdown>
@@ -122,16 +118,22 @@
       return {
         description: '用户信息',
         currentDeptId: '',
+        currentDept: {},
         // 表头
         columns: [{
-          title: '用户账号',
-          align: "center",
-          dataIndex: 'username'
-        },
+            title: '用户账号',
+            align: "center",
+            dataIndex: 'username'
+          },
           {
             title: '用户名称',
             align: "center",
             dataIndex: 'realname'
+          },
+          {
+            title: '部门',
+            align: "center",
+            dataIndex: 'orgCode'
           },
           {
             title: '性别',
@@ -144,16 +146,11 @@
             dataIndex: 'phone'
           },
           {
-            title: '部门',
-            align: "center",
-            dataIndex: 'orgCode'
-          },
-          {
             title: '操作',
             dataIndex: 'action',
             scopedSlots: {customRender: 'action'},
             align: "center",
-            width: 170
+            width: 150
           }],
         url: {
           list: "/sys/user/departUserList",
@@ -169,9 +166,7 @@
     methods: {
       searchReset() {
         this.queryParam = {}
-        this.currentDeptId = '';
         this.loadData(1);
-        this.$emit('clearSelectedDepartKeys')
       },
       loadData(arg) {
         if (!this.url.list) {
@@ -261,6 +256,7 @@
       open(record) {
         //console.log(record);
         this.currentDeptId = record.id;
+        this.currentDept = record;
         this.loadData(1);
       },
       clearList() {
@@ -292,9 +288,10 @@
           this.$message.error("请选择一个部门!")
         } else {
           this.$refs.modalForm.departDisabled = true;
-          this.$refs.modalForm.userDepartModel.departIdList = [this.currentDeptId];  //传入一个部门id
-          this.$refs.modalForm.add();
+          //初始化负责部门
+          this.$refs.modalForm.nextDepartOptions=[{value:this.currentDept.key,label:this.currentDept.title}]
           this.$refs.modalForm.title = "新增";
+          this.$refs.modalForm.edit({activitiSync:'1',userIdentity:1,selecteddeparts:this.currentDeptId})
         }
       },
       selectOK(data) {
@@ -315,8 +312,12 @@
         })
       },
       handleDeptRole(record){
-        this.$refs.deptRoleUser.add(record,this.currentDeptId);
-        this.$refs.deptRoleUser.title = "部门角色分配";
+        if(this.currentDeptId != ''){
+          this.$refs.deptRoleUser.add(record,this.currentDeptId);
+          this.$refs.deptRoleUser.title = "部门角色分配";
+        }else{
+          this.$message.warning("请先选择一个部门!");
+        }
       }
     }
   }
